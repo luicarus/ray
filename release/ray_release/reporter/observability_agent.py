@@ -123,9 +123,12 @@ class ObservabilityAgentReporter(Reporter):
         # back the summary; those stay out of the logs to keep them readable.
         logger.debug(f"Observability agent response: {json.dumps(response)}")
 
-        query_result = response.get("result", {})
-        summary = query_result.get("analysis", {}).get("summary")
-        slack_thread = query_result.get("metadata", {}).get("slack_thread")
+        # `or {}` rather than a `get` default: the agent sends explicit nulls,
+        # and a null would otherwise raise out of a reporter, which glue.py
+        # does not guard against.
+        query_result = response.get("result") or {}
+        summary = (query_result.get("analysis") or {}).get("summary")
+        slack_thread = (query_result.get("metadata") or {}).get("slack_thread")
 
         message = f"Observability agent analysis of job {job_id}:\n{summary}"
         if slack_thread:
